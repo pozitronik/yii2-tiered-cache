@@ -1,10 +1,10 @@
 <?php
 declare(strict_types=1);
 
-namespace Beeline\TieredCache\Tests;
+namespace Beeline\TieredCache\Tests\Unit;
 
 use Beeline\TieredCache\Cache\TieredCache;
-use Codeception\Test\Unit;
+use PHPUnit\Framework\TestCase;
 use yii\caching\ArrayCache;
 use yii\caching\TagDependency;
 
@@ -20,7 +20,7 @@ use yii\caching\TagDependency;
  * - Согласованность тегов между слоями
  * - Граничные случаи и edge cases
  */
-class TieredCacheTagDependencyTest extends Unit
+class TieredCacheTagDependencyTest extends TestCase
 {
     /**
      * Сценарий: Базовая инвалидация одного значения по одному тегу
@@ -339,7 +339,7 @@ class TieredCacheTagDependencyTest extends Unit
     }
 
     /**
-     * Сценарий: Проверка что dependency data сохраняется корректно
+     * Сценарий: Проверка, что dependency data сохраняется корректно
      *
      * Проверяет внутренний механизм работы TagDependency - сохранение
      * dependency data при записи значения.

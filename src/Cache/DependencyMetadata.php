@@ -49,6 +49,7 @@ final readonly class DependencyMetadata
      * Извлекает класс, публичные свойства и evaluated data из dependency.
      *
      * @param Dependency $dependency Dependency объект (должен быть уже evaluated)
+     *
      * @return self
      */
     public static function fromDependency(Dependency $dependency): self

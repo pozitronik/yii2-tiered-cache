@@ -221,13 +221,17 @@ class TieredCache extends Cache
                             $layer->getBreaker()->recordFailure();
                             throw new InvalidArgumentException(
                                 "TieredCache strict mode: expected WrappedCacheValue for key '$key', got " .
-                                get_debug_type($wrappedValue) . '. This indicates direct layer access or legacy data format.',
+                                get_debug_type(
+                                    $wrappedValue,
+                                ) . '. This indicates direct layer access or legacy data format.',
                             );
                         }
 
                         // Режим совместимости: автоматически оборачиваем legacy-значения
                         Yii::info(
-                            "Layer $index: auto-wrapping legacy value for key '$key' (type: " . get_debug_type($wrappedValue) . '). ',
+                            "Layer $index: auto-wrapping legacy value for key '$key' (type: " . get_debug_type(
+                                $wrappedValue,
+                            ) . '). ',
                             __METHOD__,
                         );
 
@@ -255,7 +259,6 @@ class TieredCache extends Cache
                     $value = serialize([$wrappedValue->value, $wrappedValue->dependencyMeta?->recreate()]);
                     break;
                 }
-
                 // Не найдено, но без ошибки
             } catch (Throwable $e) {
                 Yii::warning("Layer $index failed to read key '$key': {$e->getMessage()}", __METHOD__);
@@ -265,11 +268,13 @@ class TieredCache extends Cache
 
         // Заполняем слои с более высоким приоритетом, если настроено
         if ($foundValue && $populateFromLayer > 0 && self::RECOVERY_POPULATE === $this->recoveryStrategy) {
-            $this->populateHigherLayers($key,
+            $this->populateHigherLayers(
+                $key,
                 $wrappedValue->value,
                 $populateFromLayer,
                 $wrappedValue->expiresAt,
-                $wrappedValue->dependencyMeta);
+                $wrappedValue->dependencyMeta,
+            );
         }
 
         return $value;
@@ -397,6 +402,7 @@ class TieredCache extends Cache
      * Если dependency присутствует, валидирует его тип и конвертирует в DependencyMetadata.
      *
      * @param string $value Сериализованное значение (содержит либо чистое значение, либо [value, dependency])
+     *
      * @return array{0: mixed, 1: DependencyMetadata|null} Массив [фактическое значение, metadata dependency]
      * @throws InvalidArgumentException Если dependency имеет некорректный тип
      */
@@ -493,8 +499,8 @@ class TieredCache extends Cache
         mixed $value,
         int $fromLayerIndex,
         ?int $expiresAt,
-        ?DependencyMetadata $dependencyMeta = null): void
-    {
+        ?DependencyMetadata $dependencyMeta = null,
+    ): void {
         for ($i = 0; $i < $fromLayerIndex; $i++) {
             $layer = $this->initializedLayers[$i];
 
@@ -508,7 +514,10 @@ class TieredCache extends Cache
 
             try {
                 $layer->setValue($key, $value, $remainingTtl, $dependencyMeta);
-                Yii::debug("Populated layer $i with key '$key' from layer $fromLayerIndex (TTL: {$remainingTtl}s)", __METHOD__);
+                Yii::debug(
+                    "Populated layer $i with key '$key' from layer $fromLayerIndex (TTL: {$remainingTtl}s)",
+                    __METHOD__,
+                );
             } catch (Throwable $e) {
                 Yii::warning("Failed to populate layer $i: {$e->getMessage()}", __METHOD__);
             }
@@ -527,6 +536,7 @@ class TieredCache extends Cache
      *
      * @param int|null $expiresAt Абсолютное время истечения (Unix timestamp) или null для бесконечного TTL
      * @param int|null $layerTtl Максимальное TTL слоя в секундах или null без ограничений
+     *
      * @return int Оставшееся время в секундах (минимум 1, максимум согласно layerTtl)
      */
     private function calculateRemainingTtl(?int $expiresAt, ?int $layerTtl): int

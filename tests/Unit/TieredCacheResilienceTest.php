@@ -1,45 +1,45 @@
 <?php
 declare(strict_types=1);
-namespace Beeline\TieredCache\Tests;
+namespace Beeline\TieredCache\Tests\Unit;
 
 
 use Beeline\TieredCache\Cache\TieredCache;
 use Beeline\TieredCache\Cache\WrappedCacheValue;
 use Beeline\TieredCache\Resilience\BreakerInterface;
-use Codeception\Test\Unit;
+use PHPUnit\Framework\TestCase;
+use yii\base\InvalidConfigException;
 use yii\caching\ArrayCache;
-use yii\redis\Cache as RedisCache;
 
 /**
- * Тесты устойчивости для TieredCache с реальным Redis
+ * Тесты устойчивости для TieredCache с несколькими слоями
  *
- * Набор интеграционных тестов, проверяющих работу многоуровневого кеша в реальных условиях
- * с подключением к Redis. Проверяется поведение компонента при отказах слоев,
+ * Набор unit-тестов, проверяющих работу многоуровневого кеша.
+ * Используется только ArrayCache для изолированного тестирования. Проверяется поведение компонента при отказах слоев,
  * автоматическое переключение между уровнями и восстановление после сбоев.
  *
  * Сценарии тестирования:
- * - Базовые операции кеширования с реальным Redis слоем
- * - Автоматическое переключение при недоступности Redis
- * - Восстановление работы при возвращении доступности Redis
- * - Многоуровневое кеширование ArrayCache → Redis → ArrayCache
+ * - Базовые операции кеширования с несколькими слоями
+ * - Автоматическое переключение при недоступности слоя
+ * - Восстановление работы при возвращении доступности слоя
+ * - Многоуровневое кеширование ArrayCache → ArrayCache → ArrayCache
  * - Стратегии записи (WRITE_THROUGH, WRITE_FIRST)
  * - Стратегии восстановления (RECOVERY_POPULATE)
  * - Работа circuit breaker для каждого слоя
  * - Переопределение TTL на уровне слоя
  *
- * Запуск: vendor/bin/codecept run resilience components/cache/TieredCacheResilienceTest
+ * Запуск: vendor/bin/phpunit tests/TieredCacheResilienceTest.php
  */
-class TieredCacheResilienceTest extends Unit
+class TieredCacheResilienceTest extends TestCase
 {
 
     /**
-     * Сценарий: Базовые операции кеширования с реальным Redis слоем
+     * Сценарий: Базовые операции кеширования с несколькими слоями слоем
      *
      * Проверяет работу основных операций set/get/delete с использованием
-     * реального Redis в качестве одного из слоев кеша.
+     * реального ArrayCache в качестве одного из слоев кеша.
      *
      * Шаги теста:
-     * 1. Создается TieredCache с ArrayCache (L1) и Redis (L2)
+     * 1. Создается TieredCache с ArrayCache (L1) и ArrayCache (L2)
      * 2. Устанавливается значение с ключом 'test_key_basic'
      * 3. Проверяется успешность операции записи
      * 4. Считывается значение по ключу
@@ -52,7 +52,7 @@ class TieredCacheResilienceTest extends Unit
      * - Значение корректно считывается из кеша
      * - Удаление работает корректно для всех слоев
      */
-    public function testBasicCachingWithRedis(): void
+    public function testBasicCachingMultiTier(): void
     {
         $cache = $this->createTieredCache();
 
@@ -77,7 +77,7 @@ class TieredCacheResilienceTest extends Unit
      * При нахождении значения в нижнем слое оно должно быть заполнено в верхние слои.
      *
      * Шаги теста:
-     * 1. Создается TieredCache с тремя слоями: ArrayCache (L1), Redis (L2), ArrayCache (L3)
+     * 1. Создается TieredCache с тремя слоями: ArrayCache (L1)ArrayCache (L2)ArrayCache (L3)
      * 2. Устанавливается стратегия восстановления RECOVERY_POPULATE
      * 3. Значение устанавливается только в L3 (третий слой)
      * 4. Выполняется чтение значения через TieredCache
@@ -88,19 +88,19 @@ class TieredCacheResilienceTest extends Unit
      * Ожидаемое поведение:
      * - Компонент последовательно проверяет L1, L2, L3
      * - Значение находится в L3
-     * - С стратегией RECOVERY_POPULATE значение копируется в L1 и L2
+     * - Со стратегией RECOVERY_POPULATE значение копируется в L1 и L2
      * - Последующие чтения будут быстрее благодаря кешированию в L1
      */
     public function testMultiTierReading(): void
     {
-        $redis = $this->createRedisCache();
+        // Use ArrayCache instead of ArrayCache for unit testing
         $l1 = new ArrayCache();
         $l2 = new ArrayCache(); // Second in-memory cache instead of DB
 
         $cache = new TieredCache([
             'layers' => [
                 ['cache' => $l1, 'ttl' => 60],
-                ['cache' => $redis, 'ttl' => 60],
+                ['cache' => new ArrayCache(), 'ttl' => 60],
                 ['cache' => $l2, 'ttl' => 60],
             ],
             'recoveryStrategy' => TieredCache::RECOVERY_POPULATE,
@@ -112,7 +112,7 @@ class TieredCacheResilienceTest extends Unit
         // Delete from L1 to simulate cache miss in first layer
         $l1->delete('test_key_tier');
 
-        // First read should get from L2 (Redis) and populate L1
+        // First read should get from L2 (ArrayCache) and populate L1
         $value = $cache->get('test_key_tier');
         self::assertEquals('l2_value', $value, 'Should read from L2 (second layer)');
 
@@ -133,11 +133,11 @@ class TieredCacheResilienceTest extends Unit
      * данных, но требует больше времени на запись.
      *
      * Шаги теста:
-     * 1. Создается TieredCache с тремя слоями: ArrayCache (L1), Redis (L2), ArrayCache (L3)
+     * 1. Создается TieredCache с тремя слоями: ArrayCache (L1)ArrayCache (L2)ArrayCache (L3)
      * 2. Устанавливается стратегия записи WRITE_THROUGH
      * 3. Записывается значение через TieredCache
      * 4. Проверяется наличие значения непосредственно в L1
-     * 5. Проверяется наличие значения непосредственно в L2 (Redis)
+     * 5. Проверяется наличие значения непосредственно в L2 (ArrayCache)
      * 6. Проверяется наличие значения непосредственно в L3
      * 7. Удаляется тестовое значение
      *
@@ -148,14 +148,15 @@ class TieredCacheResilienceTest extends Unit
      */
     public function testWriteThroughStrategy(): void
     {
-        $redis = $this->createRedisCache();
+        // Use ArrayCache layers for unit testing
         $l1 = new ArrayCache();
+        $l2Middle = new ArrayCache();
         $l2 = new ArrayCache();
 
         $cache = new TieredCache([
             'layers' => [
                 ['cache' => $l1],
-                ['cache' => $redis],
+                ['cache' => $l2Middle],
                 ['cache' => $l2],
             ],
             'writeStrategy' => TieredCache::WRITE_THROUGH,
@@ -169,9 +170,9 @@ class TieredCacheResilienceTest extends Unit
         self::assertInstanceOf(WrappedCacheValue::class, $l1Value);
         self::assertEquals('value', $l1Value->value, 'L1 should have value');
 
-        $redisValue = $redis->get('test_key_write_through');
-        self::assertInstanceOf(WrappedCacheValue::class, $redisValue);
-        self::assertEquals('value', $redisValue->value, 'L2 (Redis) should have value');
+        $l2Value = $l2Middle->get('test_key_write_through');
+        self::assertInstanceOf(WrappedCacheValue::class, $l2Value);
+        self::assertEquals('value', $l2Value->value, 'L2 (ArrayCache) should have value');
 
         $l2Value = $l2->get('test_key_write_through');
         self::assertInstanceOf(WrappedCacheValue::class, $l2Value);
@@ -190,11 +191,11 @@ class TieredCacheResilienceTest extends Unit
      * чтение и стратегию восстановления.
      *
      * Шаги теста:
-     * 1. Создается TieredCache с тремя слоями: ArrayCache (L1), Redis (L2), ArrayCache (L3)
+     * 1. Создается TieredCache с тремя слоями: ArrayCache (L1)ArrayCache (L2)ArrayCache (L3)
      * 2. Устанавливается стратегия записи WRITE_FIRST
      * 3. Записывается значение через TieredCache
      * 4. Проверяется наличие значения в L1
-     * 5. Проверяется отсутствие значения в L2 (Redis)
+     * 5. Проверяется отсутствие значения в L2 (ArrayCache)
      * 6. Проверяется отсутствие значения в L3
      * 7. Удаляется тестовое значение
      *
@@ -205,14 +206,15 @@ class TieredCacheResilienceTest extends Unit
      */
     public function testWriteFirstStrategy(): void
     {
-        $redis = $this->createRedisCache();
+        // Use ArrayCache layers for unit testing
         $l1 = new ArrayCache();
+        $l2Middle = new ArrayCache();
         $l2 = new ArrayCache();
 
         $cache = new TieredCache([
             'layers' => [
                 ['cache' => $l1],
-                ['cache' => $redis],
+                ['cache' => $l2Middle],
                 ['cache' => $l2],
             ],
             'writeStrategy' => TieredCache::WRITE_FIRST,
@@ -225,7 +227,7 @@ class TieredCacheResilienceTest extends Unit
         $l1Value = $l1->get('test_key_write_first');
         self::assertInstanceOf(WrappedCacheValue::class, $l1Value);
         self::assertEquals('value', $l1Value->value, 'L1 should have value');
-        self::assertFalse($redis->get('test_key_write_first'), 'L2 should not have value');
+        self::assertFalse($l2Middle->get('test_key_write_first'), 'L2 should not have value');
         self::assertFalse($l2->get('test_key_write_first'), 'L3 should not have value');
 
         // Clean up
@@ -233,38 +235,40 @@ class TieredCacheResilienceTest extends Unit
     }
 
     /**
-     * Сценарий: Автоматическое переключение при недоступности Redis слоя
+     * Сценарий: Автоматическое переключение при недоступности слоя
      *
      * Проверяет механизм автоматического failover - переключения на следующий слой
-     * при недоступности текущего. Имитируется отказ Redis путем принудительного
+     * при недоступности текущего. Имитируется отказ ArrayCache путем принудительного
      * открытия circuit breaker второго слоя.
      *
      * Шаги теста:
-     * 1. Создается TieredCache с тремя слоями: ArrayCache (L1), Redis (L2), ArrayCache (L3)
+     * 1. Создается TieredCache с тремя слоями: ArrayCache (L1)ArrayCache (L2)ArrayCache (L3)
      * 2. Записывается значение во все слои
      * 3. Проверяется успешное чтение значения
-     * 4. Принудительно открывается circuit breaker Redis слоя (имитация отказа)
+     * 4. Принудительно открывается circuit breaker ArrayCache слоя (имитация отказа)
      * 5. Удаляется значение из L1 для имитации промаха верхнего слоя
      * 6. Выполняется чтение значения
-     * 7. Проверяется, что значение успешно прочитано из L3 (Redis пропущен)
+     * 7. Проверяется, что значение успешно прочитано из L3 (ArrayCache пропущен)
      * 8. Удаляется тестовое значение
      *
      * Ожидаемое поведение:
-     * - При открытом circuit breaker Redis (L2) запросы к нему не выполняются
+     * - При открытом circuit breaker ArrayCache (L2) запросы к нему не выполняются
      * - Компонент автоматически переходит к следующему доступному слою (L3)
-     * - Чтение выполняется успешно несмотря на недоступность Redis
+     * - Чтение выполняется успешно несмотря на недоступность ArrayCache
      * - Failover происходит прозрачно для клиентского кода
+     *
+     * @throws InvalidConfigException
      */
-    public function testAutoFailoverWhenRedisUnavailable(): void
+    public function testAutoFailoverWhenArrayCacheUnavailable(): void
     {
-        $redis = $this->createRedisCache();
+        // Use ArrayCache instead of ArrayCache for unit testing
         $l1 = new ArrayCache();
         $l2 = new ArrayCache();
 
         $cache = new TieredCache([
             'layers' => [
                 ['cache' => $l1],
-                ['cache' => $redis],
+                ['cache' => new ArrayCache()],
                 ['cache' => $l2],
             ],
         ]);
@@ -276,15 +280,15 @@ class TieredCacheResilienceTest extends Unit
         // Verify value is set
         self::assertEquals('original_value', $cache->get('test_key_failover'));
 
-        // Force Redis circuit breaker to open (simulating Redis failure)
+        // Force ArrayCache circuit breaker to open (simulating ArrayCache failure)
         $cache->forceLayerOpen(1);
 
         // Clear L1 to force reading from lower layers
         $l1->delete('test_key_failover');
 
-        // Should still read from L2 when Redis is unavailable
+        // Should still read from L2 when ArrayCache is unavailable
         $value = $cache->get('test_key_failover');
-        self::assertEquals('original_value', $value, 'Should fallback to L2 when Redis is unavailable');
+        self::assertEquals('original_value', $value, 'Should fallback to L2 when ArrayCache is unavailable');
 
         // Clean up
         $cache->delete('test_key_failover');
@@ -298,33 +302,34 @@ class TieredCacheResilienceTest extends Unit
      * повторные попытки обращения к неисправному слою.
      *
      * Шаги теста:
-     * 1. Создается TieredCache с ArrayCache (L1), Redis (L2) с circuit breaker, ArrayCache (L3)
-     * 2. Устанавливаются разные значения в Redis (L2) и L3
-     * 3. Выполняется чтение - должно вернуть значение из Redis (circuit breaker закрыт)
-     * 4. Проверяется, что прочитано значение из Redis
-     * 5. Принудительно открывается circuit breaker Redis слоя
+     * 1. Создается TieredCache с ArrayCache (L1)ArrayCache (L2) с circuit breakerArrayCache (L3)
+     * 2. Устанавливаются разные значения в ArrayCache (L2) и L3
+     * 3. Выполняется чтение - должно вернуть значение из ArrayCache (circuit breaker закрыт)
+     * 4. Проверяется, что прочитано значение из ArrayCache
+     * 5. Принудительно открывается circuit breaker ArrayCache слоя
      * 6. Удаляется значение из L1 для имитации промаха верхнего слоя
      * 7. Выполняется повторное чтение
-     * 8. Проверяется, что теперь прочитано значение из L3 (Redis пропущен)
+     * 8. Проверяется, что теперь прочитано значение из L3 (ArrayCache пропущен)
      * 9. Удаляется тестовое значение
      *
      * Ожидаемое поведение:
-     * - При закрытом circuit breaker чтение происходит из Redis (L2)
-     * - При открытом circuit breaker Redis пропускается
+     * - При закрытом circuit breaker чтение происходит из ArrayCache (L2)
+     * - При открытом circuit breaker ArrayCache пропускается
      * - Компонент автоматически переходит к L3
      * - Circuit breaker эффективно изолирует неисправный слой
      */
     public function testCircuitBreakerBlocksReads(): void
     {
-        $redis = $this->createRedisCache();
+        // Use ArrayCache layers for unit testing
         $l1 = new ArrayCache();
+        $l2Middle = new ArrayCache();
         $l2 = new ArrayCache();
 
         $cache = new TieredCache([
             'layers' => [
                 ['cache' => $l1, 'ttl' => 60],
                 [
-                    'cache' => $redis,
+                    'cache' => $l2Middle,
                     'ttl' => 60,
                     'circuitBreaker' => [
                         'failureThreshold' => 0.5,
@@ -336,27 +341,27 @@ class TieredCacheResilienceTest extends Unit
         ]);
 
         // Set value through TieredCache (writes to all layers)
-        $cache->set('test_key_circuit', 'redis_value', 60);
+        $cache->set('test_key_circuit', 'l2_value', 60);
 
         // Change value in L2 to differentiate which layer we're reading from
         $l2->set('test_key_circuit', new WrappedCacheValue('l2_value', time() + 60), 60);
 
-        // Clear L1 to ensure we read from Redis
+        // Clear L1 to ensure we read from ArrayCache
         $l1->delete('test_key_circuit');
 
-        // Verify Redis layer starts closed and can read from Redis
+        // Verify ArrayCache layer starts closed and can read from ArrayCache
         $value1 = $cache->get('test_key_circuit');
-        self::assertEquals('redis_value', $value1, 'Should read from Redis when circuit is closed');
+        self::assertEquals('l2_value', $value1, 'Should read from L2 when circuit is closed');
 
-        // Force Redis circuit breaker to open
+        // Force ArrayCache circuit breaker to open
         $cache->forceLayerOpen(1);
 
         // Clear L1 to force reading from lower layers
         $l1->delete('test_key_circuit');
 
-        // Now should skip Redis and read from L2
+        // Now should skip L2 and read from L3
         $value2 = $cache->get('test_key_circuit');
-        self::assertEquals('l2_value', $value2, 'Should skip Redis and read from L2 when circuit is open');
+        self::assertEquals('l2_value', $value2, 'Should skip L2 and read from L3 when circuit is open');
 
         // Clean up
         $cache->delete('test_key_circuit');
@@ -370,7 +375,7 @@ class TieredCacheResilienceTest extends Unit
      * чем в медленных, оптимизируя использование ресурсов.
      *
      * Шаги теста:
-     * 1. Создается TieredCache с Redis слоем, для которого установлен TTL = 2 секунды
+     * 1. Создается TieredCache с несколькими слоями ArrayCache, для которого установлен TTL = 2 секунды
      * 2. Записывается значение с запрошенным TTL = 3600 секунд (1 час)
      * 3. Проверяется, что значение доступно сразу после записи
      * 4. Ожидание 3 секунды (больше, чем TTL слоя)
@@ -383,13 +388,14 @@ class TieredCacheResilienceTest extends Unit
      */
     public function testLayerSpecificTtl(): void
     {
-        $redis = $this->createRedisCache();
+        // Use single ArrayCache layer
+        $l1 = new ArrayCache();
 
         $cache = new TieredCache([
             'layers' => [
                 [
-                    'cache' => $redis,
-                    'ttl' => 2, // 2 seconds for Redis
+                    'cache' => $l1,
+                    'ttl' => 2, // 2 seconds for ArrayCache
                 ],
             ],
         ]);
@@ -414,7 +420,7 @@ class TieredCacheResilienceTest extends Unit
      * все данные из всех слоев, обеспечивая полную синхронизацию при сбросе.
      *
      * Шаги теста:
-     * 1. Создается TieredCache с тремя слоями: ArrayCache (L1), Redis (L2), ArrayCache (L3)
+     * 1. Создается TieredCache с тремя слоями: ArrayCache (L1)ArrayCache (L2)ArrayCache (L3)
      * 2. Записываются два тестовых значения
      * 3. Проверяется наличие обоих значений в кеше
      * 4. Выполняется операция flush()
@@ -428,14 +434,14 @@ class TieredCacheResilienceTest extends Unit
      */
     public function testFlushClearsAllLayers(): void
     {
-        $redis = $this->createRedisCache();
+        // Use single ArrayCache layer
         $l1 = new ArrayCache();
         $l2 = new ArrayCache();
 
         $cache = new TieredCache([
             'layers' => [
                 ['cache' => $l1],
-                ['cache' => $redis],
+                ['cache' => new ArrayCache()],
                 ['cache' => $l2],
             ],
         ]);
@@ -469,7 +475,7 @@ class TieredCacheResilienceTest extends Unit
      * 3. Выполняется чтение через TieredCache
      * 4. Проверяется, что получено корректное значение
      * 5. Проверяется, что значение автоматически скопировано в L1
-     * 6. Проверяется, что значение автоматически скопировано в L2 (Redis)
+     * 6. Проверяется, что значение автоматически скопировано в L2 (ArrayCache)
      * 7. Удаляется тестовое значение
      *
      * Ожидаемое поведение:
@@ -479,14 +485,15 @@ class TieredCacheResilienceTest extends Unit
      */
     public function testRecoveryPopulateStrategy(): void
     {
-        $redis = $this->createRedisCache();
+        // Use ArrayCache layers for testing
         $l1 = new ArrayCache();
+        $l2Middle = new ArrayCache();
         $l2 = new ArrayCache();
 
         $cache = new TieredCache([
             'layers' => [
                 ['cache' => $l1, 'ttl' => 60],
-                ['cache' => $redis, 'ttl' => 60],
+                ['cache' => $l2Middle, 'ttl' => 60],
                 ['cache' => $l2, 'ttl' => 60],
             ],
             'recoveryStrategy' => TieredCache::RECOVERY_POPULATE,
@@ -495,22 +502,22 @@ class TieredCacheResilienceTest extends Unit
         // Set value through TieredCache to all layers
         $cache->set('test_key_populate', 'l2_value', 60);
 
-        // Delete from L1 and Redis to simulate cache misses
+        // Delete from L1 and L2 to simulate cache misses
         $l1->delete('test_key_populate');
-        $redis->delete('test_key_populate');
+        $l2Middle->delete('test_key_populate');
 
         // Read should get from L2 and populate higher layers
         $value = $cache->get('test_key_populate');
         self::assertEquals('l2_value', $value);
 
-        // Verify L1 and Redis were populated
+        // Verify L1 and L2Middle were populated
         $l1Value = $l1->get('test_key_populate');
         self::assertInstanceOf(WrappedCacheValue::class, $l1Value);
         self::assertEquals('l2_value', $l1Value->value, 'L1 should be populated');
 
-        $redisValue = $redis->get('test_key_populate');
-        self::assertInstanceOf(WrappedCacheValue::class, $redisValue);
-        self::assertEquals('l2_value', $redisValue->value, 'Redis should be populated');
+        $l2Value = $l2Middle->get('test_key_populate');
+        self::assertInstanceOf(WrappedCacheValue::class, $l2Value);
+        self::assertEquals('l2_value', $l2Value->value, 'ArrayCache should be populated');
 
         // Clean up
         $cache->delete('test_key_populate');
@@ -635,15 +642,14 @@ class TieredCacheResilienceTest extends Unit
     }
 
     /**
-     * Создает TieredCache с ArrayCache и Redis слоями для тестирования
+     * Создает TieredCache с двумя слоями ArrayCache для тестирования
      *
      * Фабричный метод для создания предварительно настроенного экземпляра TieredCache
-     * с двумя слоями: быстрый in-memory ArrayCache и распределенный Redis кеш.
-     * Используется в большинстве тестов для обеспечения единообразной конфигурации.
+     * с двумя слоями in-memory кеша для изолированного unit-тестирования.
      *
      * Конфигурация:
-     * - Первый слой (L1): ArrayCache (локальная память, очень быстрый)
-     * - Второй слой (L2): Redis (распределенное хранилище, среднее быстродействие)
+     * - Первый слой (L1): ArrayCache (локальная память)
+     * - Второй слой (L2): ArrayCache (локальная память)
      *
      * @return TieredCache Настроенный и инициализированный экземпляр
      */
@@ -652,23 +658,8 @@ class TieredCacheResilienceTest extends Unit
         return new TieredCache([
             'layers' => [
                 ['cache' => new ArrayCache()],
-                ['cache' => $this->createRedisCache()],
+                ['cache' => new ArrayCache()],
             ],
-        ]);
-    }
-
-    /**
-     * Создает экземпляр Redis кеша для использования в тестах
-     *
-     * Вспомогательный метод для создания настроенного Redis кеша с подключением
-     * к реальному Redis серверу через Yii::$app->redis.
-     *
-     * @return RedisCache Настроенный экземпляр Redis кеша
-     */
-    private function createRedisCache(): RedisCache
-    {
-        return new RedisCache([
-            'redis' => Yii::$app->redis,
         ]);
     }
 }

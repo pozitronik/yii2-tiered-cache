@@ -58,6 +58,7 @@ interface CacheLayerInterface
      * - Вернуть значение или false если не найдено/circuit открыт
      *
      * @param string $key Ключ для получения
+     *
      * @return mixed Значение из кеша или false если не найдено/circuit открыт
      * @throws Throwable При ошибках взаимодействия с кешем (circuit breaker должен зафиксировать failure)
      */
@@ -75,6 +76,7 @@ interface CacheLayerInterface
      * @param mixed $value Сохраняемое значение
      * @param int $ttl Время жизни в секундах
      * @param DependencyMetadata|null $dependencyMeta Метаданные зависимостей или null
+     *
      * @return bool true если значение установлено успешно, false если circuit открыт или операция не удалась
      * @throws Throwable При ошибках взаимодействия с кешем
      */
@@ -89,6 +91,7 @@ interface CacheLayerInterface
      * @param mixed $value Добавляемое значение
      * @param int $ttl Время жизни в секундах
      * @param DependencyMetadata|null $dependencyMeta Метаданные зависимостей или null
+     *
      * @return bool true если значение добавлено, false если circuit открыт/ключ существует/операция не удалась
      * @throws Throwable При ошибках взаимодействия с кешем
      */
@@ -98,6 +101,7 @@ interface CacheLayerInterface
      * Удалить значение из кеша с защитой circuit breaker
      *
      * @param mixed $key Ключ для удаления
+     *
      * @return bool true если операция выполнена успешно (независимо от существования ключа),
      *              false если circuit открыт
      * @throws Throwable При ошибках взаимодействия с кешем

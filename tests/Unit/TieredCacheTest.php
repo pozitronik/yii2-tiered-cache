@@ -1,13 +1,13 @@
 <?php
 declare(strict_types=1);
 
-namespace Beeline\TieredCache\Tests;
+namespace Beeline\TieredCache\Tests\Unit;
 
 use Beeline\TieredCache\Cache\TieredCache;
 use Beeline\TieredCache\Cache\WrappedCacheValue;
 use Beeline\TieredCache\Resilience\BreakerInterface;
 use Beeline\TieredCache\Resilience\CircuitBreaker;
-use Codeception\Test\Unit;
+use PHPUnit\Framework\TestCase;
 use Exception;
 use RuntimeException;
 use stdClass;
@@ -17,7 +17,7 @@ use yii\caching\ArrayCache;
 /**
  * Набор тестов для компонента TieredCache
  */
-class TieredCacheTest extends Unit
+class TieredCacheTest extends TestCase
 {
     /**
      * Тест: инициализация с корректной конфигурацией
@@ -34,8 +34,8 @@ class TieredCacheTest extends Unit
         $status = $cache->getLayerStatus();
 
         // Отладка: вывод фактического количества
-        codecept_debug('Layer status count: ' . count($status));
-        codecept_debug('Layer status: ' . json_encode($status, JSON_PRETTY_PRINT));
+        // Debug: 'Layer status count: ' . count($status));
+        // Debug: 'Layer status: ' . json_encode($status, JSON_PRETTY_PRINT));
 
         self::assertCount(2, $status, 'Должно быть ровно 2 слоя');
         self::assertEquals(BreakerInterface::STATE_CLOSED, $status[0]['state']);
@@ -45,7 +45,7 @@ class TieredCacheTest extends Unit
     /**
      * Тест: инициализация выбрасывает исключение при пустых слоях
      *
-     * @expectedException InvalidConfigException
+     *
      */
     public function testInitThrowsExceptionWithEmptyLayers(): void
     {
@@ -251,8 +251,10 @@ class TieredCacheTest extends Unit
         $result1 = $cache1->delete('test_key');
 
         // ASSERT: Должен вернуть TRUE, потому что L1 и L2 успешно удалили
-        self::assertTrue($result1,
-            'delete() должен вернуть TRUE если хотя бы один слой успешно удалил значение (L1 и L2 успешны, L3 сбойный)');
+        self::assertTrue(
+            $result1,
+            'delete() должен вернуть TRUE если хотя бы один слой успешно удалил значение (L1 и L2 успешны, L3 сбойный)',
+        );
 
         // Проверяем что L1 и L2 действительно удалили значения
         self::assertFalse($l1Success->get('test_key'), 'L1 должен успешно удалить значение');
@@ -277,7 +279,10 @@ class TieredCacheTest extends Unit
         $result2 = $cache2->delete('test_key_2');
 
         // ASSERT: Должен вернуть TRUE, потому что последний слой успешно удалил
-        self::assertTrue($result2, 'delete() должен вернуть TRUE даже если только последний слой успешен (L4 и L5 сбойные, L6 успешный)');
+        self::assertTrue(
+            $result2,
+            'delete() должен вернуть TRUE даже если только последний слой успешен (L4 и L5 сбойные, L6 успешный)',
+        );
 
         // Проверяем что L6 действительно удалил значение
         self::assertFalse($l6Success->get('test_key_2'), 'L6 должен успешно удалить значение');
@@ -318,8 +323,10 @@ class TieredCacheTest extends Unit
         $result4 = $cache4->delete('test_key_4');
 
         // ASSERT: Должен вернуть TRUE, потому что средний слой успешен
-        self::assertTrue($result4,
-            'delete() должен вернуть TRUE если хотя бы один (средний) слой успешен');
+        self::assertTrue(
+            $result4,
+            'delete() должен вернуть TRUE если хотя бы один (средний) слой успешен',
+        );
 
         // Проверяем что L10 действительно удалил значение
         self::assertFalse($l10Success->get('test_key_4'), 'L10 должен успешно удалить значение');
@@ -868,35 +875,49 @@ class TieredCacheTest extends Unit
         $result = $cache->get('test_key');
 
         // ASSERT 1: Корректность данных - должны получить валидное значение из L2
-        self::assertEquals('valid_data',
+        self::assertEquals(
+            'valid_data',
             $result,
-            'TieredCache должен вернуть валидное значение из L2, пропустив истекшее в L1');
+            'TieredCache должен вернуть валидное значение из L2, пропустив истекшее в L1',
+        );
 
         // ASSERT 2: Circuit breaker в здоровом состоянии
         $status = $cache->getLayerStatus();
-        self::assertEquals(BreakerInterface::STATE_CLOSED,
+        self::assertEquals(
+            BreakerInterface::STATE_CLOSED,
             $status[0]['state'],
-            'Circuit breaker L1 должен оставаться CLOSED (пропуск истекшего значения - не ошибка)');
-        self::assertEquals(BreakerInterface::STATE_CLOSED,
+            'Circuit breaker L1 должен оставаться CLOSED (пропуск истекшего значения - не ошибка)',
+        );
+        self::assertEquals(
+            BreakerInterface::STATE_CLOSED,
             $status[1]['state'],
-            'Circuit breaker L2 должен оставаться CLOSED (успешное чтение)');
+            'Circuit breaker L2 должен оставаться CLOSED (успешное чтение)',
+        );
 
         // ASSERT 3: Circuit breaker не фиксирует failures
-        self::assertEquals(0,
+        self::assertEquals(
+            0,
             $status[0]['stats']['failures'] ?? 0,
-            'Пропуск истекшего значения не должен считаться failure');
-        self::assertEquals(0,
+            'Пропуск истекшего значения не должен считаться failure',
+        );
+        self::assertEquals(
+            0,
             $status[1]['stats']['failures'] ?? 0,
-            'Успешное чтение из L2 не должно быть failure');
-        self::assertEquals(0,
+            'Успешное чтение из L2 не должно быть failure',
+        );
+        self::assertEquals(
+            0,
             $status[2]['stats']['failures'] ?? 0,
-            'L3 не должен иметь failures');
+            'L3 не должен иметь failures',
+        );
 
         // ASSERT 4: Повторное чтение дает тот же результат (идемпотентность)
         $resultSecond = $cache->get('test_key');
-        self::assertEquals('valid_data',
+        self::assertEquals(
+            'valid_data',
             $resultSecond,
-            'Повторное чтение должно давать тот же результат');
+            'Повторное чтение должно давать тот же результат',
+        );
 
         // ПРИМЕЧАНИЕ: Мы НЕ проверяем, что истекшее значение удалено из L1,
         // потому что это тест для сценария БЕЗ явного удаления.
@@ -909,14 +930,18 @@ class TieredCacheTest extends Unit
         if (false !== $l1Value) {
             // Если значение осталось в L1 (не было удалено), проверяем что оно все еще истекшее
             self::assertInstanceOf(WrappedCacheValue::class, $l1Value);
-            self::assertTrue($l1Value->expired,
-                'Если истекшее значение осталось в L1, оно должно быть помечено как expired');
+            self::assertTrue(
+                $l1Value->expired,
+                'Если истекшее значение осталось в L1, оно должно быть помечено как expired',
+            );
 
             // И система должна продолжать корректно его пропускать
             $resultThird = $cache->get('test_key');
-            self::assertEquals('valid_data',
+            self::assertEquals(
+                'valid_data',
                 $resultThird,
-                'Система должна пропускать истекшее значение при любом количестве повторных чтений');
+                'Система должна пропускать истекшее значение при любом количестве повторных чтений',
+            );
         }
     }
 
@@ -960,16 +985,25 @@ class TieredCacheTest extends Unit
         $readValue = $standardCache->get('user:123');
 
         // ПРОБЛЕМА: стандартный cache получает WrappedCacheValue, а не массив с данными
-        self::assertInstanceOf(WrappedCacheValue::class, $readValue,
-            'Стандартный cache получает WrappedCacheValue вместо реальных данных - формат несовместим!');
+        self::assertInstanceOf(
+            WrappedCacheValue::class,
+            $readValue,
+            'Стандартный cache получает WrappedCacheValue вместо реальных данных - формат несовместим!',
+        );
 
         // Данные недоступны без знания внутреннего формата TieredCache
-        self::assertNotEquals($userData, $readValue,
-            'Приложение B не может получить исходные данные - требуется знать о WrappedCacheValue');
+        self::assertNotEquals(
+            $userData,
+            $readValue,
+            'Приложение B не может получить исходные данные - требуется знать о WrappedCacheValue',
+        );
 
         // Чтобы получить данные, нужно знать о внутреннем формате (что нарушает инкапсуляцию)
-        self::assertEquals($userData, $readValue->value,
-            'Реальные данные спрятаны в свойстве value WrappedCacheValue');
+        self::assertEquals(
+            $userData,
+            $readValue->value,
+            'Реальные данные спрятаны в свойстве value WrappedCacheValue',
+        );
     }
 
     /**
@@ -1016,17 +1050,26 @@ class TieredCacheTest extends Unit
         $result = $tieredCache->get('app:config');
 
         // Значение успешно получено и совпадает с оригинальными данными
-        self::assertEquals($configData, $result,
-            'TieredCache успешно читает legacy-значения через автоматическое оборачивание');
+        self::assertEquals(
+            $configData,
+            $result,
+            'TieredCache успешно читает legacy-значения через автоматическое оборачивание',
+        );
 
         // Circuit breaker НЕ фиксирует ошибку (это валидная операция)
         $status = $tieredCache->getLayerStatus();
-        self::assertEquals(0, $status[0]['stats']['failures'] ?? 0,
-            'Circuit breaker не считает legacy-данные ошибкой в режиме совместимости');
+        self::assertEquals(
+            0,
+            $status[0]['stats']['failures'] ?? 0,
+            'Circuit breaker не считает legacy-данные ошибкой в режиме совместимости',
+        );
 
         // Circuit breaker в состоянии CLOSED (здоров)
-        self::assertEquals(BreakerInterface::STATE_CLOSED, $status[0]['state'],
-            'Circuit breaker остается закрытым после успешного чтения legacy-значения');
+        self::assertEquals(
+            BreakerInterface::STATE_CLOSED,
+            $status[0]['state'],
+            'Circuit breaker остается закрытым после успешного чтения legacy-значения',
+        );
     }
 
     /**
@@ -1063,8 +1106,11 @@ class TieredCacheTest extends Unit
 
         // Circuit breaker фиксирует ошибку
         $status = $tieredCache->getLayerStatus();
-        self::assertEquals(1, $status[0]['stats']['failures'],
-            'Строгий режим фиксирует legacy-значения как failure в circuit breaker');
+        self::assertEquals(
+            1,
+            $status[0]['stats']['failures'],
+            'Строгий режим фиксирует legacy-значения как failure в circuit breaker',
+        );
     }
 }
 
