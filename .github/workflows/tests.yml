@@ -1,0 +1,76 @@
+name: Tests
+
+on:
+  push:
+    branches: [ master, dev ]
+  pull_request:
+    branches: [ master, dev ]
+
+jobs:
+  test:
+    name: PHP ${{ matrix.php }} - Yii2 ${{ matrix.yii2 }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.4']
+        yii2: ['^2.0']
+        include:
+          # Test with the lowest dependencies
+          - php: '8.4'
+            yii2: '^2.0'
+            dependencies: 'lowest'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: mbstring, intl, pcntl, zip
+          coverage: xdebug
+          tools: composer:v2
+
+      - name: Validate composer.json and composer.lock
+        run: composer validate --strict
+
+      - name: Get composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Install dependencies (default)
+        if: matrix.dependencies != 'lowest'
+        run: |
+          composer require "yiisoft/yii2:${{ matrix.yii2 }}" --no-interaction --no-update
+          composer update --prefer-dist --no-interaction --no-progress
+
+      - name: Install dependencies (lowest)
+        if: matrix.dependencies == 'lowest'
+        run: |
+          composer require "yiisoft/yii2:${{ matrix.yii2 }}" --no-interaction --no-update
+          composer update --prefer-lowest --prefer-stable --prefer-dist --no-interaction --no-progress
+
+      - name: Run tests
+        run: vendor/bin/phpunit --colors=always
+
+      - name: Run tests with coverage
+        if: matrix.php == '8.4' && matrix.dependencies != 'lowest'
+        run: vendor/bin/phpunit --coverage-clover coverage.xml
+
+      - name: Upload coverage to Codecov
+        if: matrix.php == '8.4' && matrix.dependencies != 'lowest'
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./coverage.xml
+          fail_ci_if_error: false
+          verbose: true

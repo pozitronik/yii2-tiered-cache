@@ -16,6 +16,8 @@ Thumbs.db
 # Testing
 /tests/_output/
 /tests/_support/_generated/
+coverage.xml
+.phpunit.result.cache
 
 # Build artifacts
 *.phar
@@ -24,5 +26,4 @@ Thumbs.db
 *.tmp
 *.temp
 *.log
-.phpunit.result.cache
 .phpunit.cache/

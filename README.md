@@ -1,5 +1,10 @@
 # Yii2 Tiered Cache
 
+[![Tests](https://github.com/beeline/yii2-tiered-cache/actions/workflows/tests.yml/badge.svg)](https://github.com/beeline/yii2-tiered-cache/actions/workflows/tests.yml)
+[![Codecov](https://codecov.io/gh/beeline/yii2-tiered-cache/branch/main/graph/badge.svg)](https://codecov.io/gh/beeline/yii2-tiered-cache)
+[![Latest Stable Version](https://poser.pugx.org/beeline/yii2-tiered-cache/v/stable)](https://packagist.org/packages/beeline/yii2-tiered-cache)
+[![License](https://poser.pugx.org/beeline/yii2-tiered-cache/license)](https://packagist.org/packages/beeline/yii2-tiered-cache)
+
 Многоуровневый компонент кеширования для Yii2 с защитой через circuit breaker и автоматическим переключением слоев.
 
 ## Возможности
