@@ -14,9 +14,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php: ['8.4']
-        yii2: ['^2.0.45']
         include:
+          # Default dependencies
+          - php: '8.4'
+            yii2: '^2.0.45'
           # Test with the lowest dependencies
           - php: '8.4'
             yii2: '^2.0.45'
