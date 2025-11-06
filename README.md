@@ -1,31 +1,31 @@
 # Yii2 Tiered Cache
 
-Multi-tiered caching component for Yii2 with circuit breaker protection and automatic failover.
+Многоуровневый компонент кеширования для Yii2 с защитой через circuit breaker и автоматическим переключением слоев.
 
-## Features
+## Возможности
 
-- **Multi-tier cache architecture**: Multiple cache layers (L1, L2, L3, ...) with automatic failover
-- **Circuit breaker protection**: Each layer protected by circuit breaker to prevent cascading failures
-- **Flexible write strategies**: Write-through (all layers) or write-first (fastest layer only)
-- **Intelligent recovery**: Automatic layer repopulation after failures
-- **TTL management**: Per-layer TTL overrides for optimal resource usage
-- **Yii2 dependency support**: Full support for TagDependency and other Yii2 cache dependencies
-- **Backward compatibility**: Auto-wrap mode for seamless migration from standard Yii2 cache
+- **Многоуровневая архитектура кеша**: Несколько слоев кеша (L1, L2, L3, ...) с автоматическим переключением при отказах
+- **Защита через circuit breaker**: Каждый слой защищен circuit breaker для предотвращения каскадных сбоев
+- **Гибкие стратегии записи**: Сквозная запись (во все слои) или запись в первый слой
+- **Интеллектуальное восстановление**: Автоматическое заполнение слоев после восстановления
+- **Управление TTL**: Переопределение TTL для каждого слоя для оптимального использования ресурсов
+- **Поддержка зависимостей Yii2**: Полная поддержка TagDependency и других механизмов зависимостей Yii2
+- **Обратная совместимость**: Режим авто-обертки для бесшовной миграции со стандартного кеша Yii2
 
-## Installation
+## Установка
 
 ```bash
 composer require beeline/yii2-tiered-cache
 ```
 
-## Requirements
+## Требования
 
-- PHP 8.4 or higher
-- Yii2 2.0 or higher
+- PHP 8.4 или выше
+- Yii2 2.0 или выше
 
-## Basic Usage
+## Базовое использование
 
-### Configuration
+### Конфигурация
 
 ```php
 'cache' => [
@@ -33,7 +33,7 @@ composer require beeline/yii2-tiered-cache
     'layers' => [
         [
             'cache' => ['class' => \yii\caching\ApcCache::class, 'useApcu' => true],
-            'ttl' => 300,  // 5 minutes for L1
+            'ttl' => 300,  // 5 минут для L1
         ],
         [
             'cache' => ['class' => \yii\caching\RedisCache::class, 'redis' => 'redis'],
@@ -45,192 +45,192 @@ composer require beeline/yii2-tiered-cache
 ],
 ```
 
-### Standard Cache Operations
+### Стандартные операции с кешем
 
 ```php
-// Set value
+// Установить значение
 Yii::$app->cache->set('key', 'value', 3600);
 
-// Get value
+// Получить значение
 $value = Yii::$app->cache->get('key');
 
-// Delete value
+// Удалить значение
 Yii::$app->cache->delete('key');
 
-// Flush all layers
+// Очистить все слои
 Yii::$app->cache->flush();
 ```
 
-### With TagDependency
+### Использование с TagDependency
 
 ```php
 use yii\caching\TagDependency;
 
-// Set with dependency
+// Установить с зависимостью
 Yii::$app->cache->set('user:123', $userData, 3600,
     new TagDependency(['tags' => ['user-cache', 'user-123']])
 );
 
-// Invalidate by tag
+// Инвалидировать по тегу
 TagDependency::invalidate(Yii::$app->cache, 'user-cache');
 ```
 
-## Configuration Options
+## Параметры конфигурации
 
-### Write Strategies
+### Стратегии записи
 
-**WRITE_THROUGH** (default) - Write to all available layers:
+**WRITE_THROUGH** (по умолчанию) - Запись во все доступные слои:
 
 ```php
 'writeStrategy' => \Beeline\TieredCache\Cache\TieredCache::WRITE_THROUGH,
 ```
 
-**WRITE_FIRST** - Write only to first available layer:
+**WRITE_FIRST** - Запись только в первый доступный слой:
 
 ```php
 'writeStrategy' => \Beeline\TieredCache\Cache\TieredCache::WRITE_FIRST,
 ```
 
-### Recovery Strategies
+### Стратегии восстановления
 
-**RECOVERY_POPULATE** (default) - Actively populate recovered layers:
+**RECOVERY_POPULATE** (по умолчанию) - Активное заполнение восстановленных слоев:
 
 ```php
 'recoveryStrategy' => \Beeline\TieredCache\Cache\TieredCache::RECOVERY_POPULATE,
 ```
 
-**RECOVERY_NATURAL** - Let layers fill naturally:
+**RECOVERY_NATURAL** - Естественное заполнение слоев:
 
 ```php
 'recoveryStrategy' => \Beeline\TieredCache\Cache\TieredCache::RECOVERY_NATURAL,
 ```
 
-### Circuit Breaker Configuration
+### Конфигурация Circuit Breaker
 
 ```php
 'layers' => [
     [
         'cache' => ['class' => \yii\caching\RedisCache::class, 'redis' => 'redis'],
         'circuitBreaker' => [
-            'failureThreshold' => 0.5,    // Open circuit at 50% failure rate
-            'windowSize' => 10,            // Track last 10 requests
-            'timeout' => 30,               // Retry after 30 seconds
-            'successThreshold' => 1,       // Close circuit after 1 success
+            'failureThreshold' => 0.5,    // Открыть при 50% отказов
+            'windowSize' => 10,            // Отслеживать последние 10 запросов
+            'timeout' => 30,               // Повторить попытку через 30 секунд
+            'successThreshold' => 1,       // Закрыть после 1 успеха
         ],
     ],
 ],
 ```
 
-### Per-Layer TTL Override
+### Переопределение TTL для слоя
 
 ```php
 'layers' => [
     [
         'cache' => ['class' => \yii\caching\ApcCache::class, 'useApcu' => true],
-        'ttl' => 300,  // Override: max 5 minutes for this layer
+        'ttl' => 300,  // Переопределение: максимум 5 минут для этого слоя
     ],
 ],
 ```
 
-## Advanced Usage
+## Продвинутое использование
 
-### Custom Circuit Breaker
+### Собственный Circuit Breaker
 
 ```php
 'defaultBreakerClass' => \Beeline\TieredCache\Resilience\CircuitBreaker::class,
 ```
 
-### Strict Mode
+### Строгий режим
 
-Reject non-wrapped values for data format consistency:
+Отклонение необернутых значений для согласованности формата данных:
 
 ```php
 'strictMode' => true,
 ```
 
-### Monitoring Layer Status
+### Мониторинг состояния слоев
 
 ```php
 $status = Yii::$app->cache->getLayerStatus();
 
 foreach ($status as $layer) {
-    echo "Layer {$layer['index']}: {$layer['class']}\n";
-    echo "State: {$layer['state']}\n";  // closed, open, half_open
-    echo "Failures: {$layer['stats']['failures']}\n";
+    echo "Слой {$layer['index']}: {$layer['class']}\n";
+    echo "Состояние: {$layer['state']}\n";  // closed, open, half_open
+    echo "Отказы: {$layer['stats']['failures']}\n";
 }
 ```
 
-### Manual Circuit Breaker Control
+### Ручное управление Circuit Breaker
 
 ```php
-// Force layer offline (testing/maintenance)
+// Принудительно отключить слой (тестирование/обслуживание)
 Yii::$app->cache->forceLayerOpen(1);
 
-// Force layer online
+// Принудительно включить слой
 Yii::$app->cache->forceLayerClose(1);
 
-// Reset all circuit breakers
+// Сбросить все circuit breaker
 Yii::$app->cache->resetCircuitBreakers();
 ```
 
-## Architecture
+## Архитектура
 
-### How It Works
+### Принцип работы
 
-**Read Operations (get)**:
-1. Check first layer availability (circuit breaker)
-2. Attempt read from first available layer
-3. On success: optionally populate upper layers (RECOVERY_POPULATE)
-4. On failure: try next layer
-5. Record result in circuit breaker
+**Операции чтения (get)**:
+1. Проверка доступности первого слоя (circuit breaker)
+2. Попытка чтения из первого доступного слоя
+3. При успехе: опционально заполнить верхние слои (RECOVERY_POPULATE)
+4. При отказе: попытка следующего слоя
+5. Запись результата в circuit breaker
 
-**Write Operations (set)**:
-- **WRITE_THROUGH**: Write to all available layers
-- **WRITE_FIRST**: Write to first available layer only
+**Операции записи (set)**:
+- **WRITE_THROUGH**: Запись во все доступные слои
+- **WRITE_FIRST**: Запись только в первый доступный слой
 
-**Delete Operations**:
-- Always delete from all layers (regardless of write strategy)
+**Операции удаления**:
+- Всегда удаление из всех слоев (независимо от стратегии записи)
 
-### Circuit Breaker States
+### Состояния Circuit Breaker
 
-**CLOSED**: Normal operation, requests pass through
+**CLOSED**: Нормальная работа, запросы проходят
 
-**OPEN**: Too many failures, requests blocked
+**OPEN**: Слишком много отказов, запросы блокируются
 
-**HALF_OPEN**: Testing recovery, limited requests allowed
+**HALF_OPEN**: Тестирование восстановления, ограниченное количество запросов
 
-### Fault Tolerance
+### Отказоустойчивость
 
-When a cache layer fails:
-1. Circuit breaker records failure
-2. After N failures, circuit opens (layer skipped)
-3. Requests automatically routed to next available layer
-4. After timeout, circuit transitions to HALF_OPEN
-5. Successful request closes circuit (layer recovered)
+При отказе слоя кеша:
+1. Circuit breaker фиксирует отказ
+2. После N отказов circuit открывается (слой пропускается)
+3. Запросы автоматически направляются к следующему доступному слою
+4. После таймаута circuit переходит в состояние HALF_OPEN
+5. Успешный запрос закрывает circuit (слой восстановлен)
 
-## Benefits
+## Преимущества
 
-- **High availability**: Automatic failover prevents cache outages
-- **Performance**: No waiting for timeouts on known failures
-- **Graceful degradation**: System works even when cache layers fail
-- **Fast recovery**: Automatic detection and restoration of failed layers
-- **Resource optimization**: Per-layer TTL for efficient memory usage
+- **Высокая доступность**: Автоматическое переключение предотвращает недоступность кеша
+- **Производительность**: Нет ожидания таймаутов при известных отказах
+- **Плавная деградация**: Система работает даже при отказе слоев кеша
+- **Быстрое восстановление**: Автоматическое обнаружение и восстановление отказавших слоев
+- **Оптимизация ресурсов**: TTL для каждого слоя для эффективного использования памяти
 
-## Testing
+## Тестирование
 
 ```bash
-# Install dependencies
+# Установка зависимостей
 composer install
 
-# Run tests
+# Запуск тестов
 vendor/bin/phpunit
 ```
 
-## License
+## Лицензия
 
-GNU General Public License v3.0 or later. See LICENSE file for details.
+GNU General Public License v3.0 или более поздняя версия. Подробности в файле LICENSE.
 
-## Links
+## Ссылки
 
 - [GitHub Repository](https://github.com/beeline/yii2-tiered-cache)
 - [Issue Tracker](https://github.com/beeline/yii2-tiered-cache/issues)
