@@ -26,7 +26,7 @@ composer require beeline/yii2-tiered-cache
 ## Требования
 
 - PHP 8.4 или выше
-- Yii2 2.0 или выше
+- Yii2 2.0.13 или выше
 
 ## Базовое использование
 
