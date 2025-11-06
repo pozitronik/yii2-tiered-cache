@@ -1,0 +1,26 @@
+# Composer
+/vendor/
+composer.lock
+
+# IDE
+/.idea/
+/.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing
+/tests/_output/
+/tests/_support/_generated/
+
+# Build artifacts
+*.phar
+
+# Temporary files
+*.tmp
+*.temp
+*.log

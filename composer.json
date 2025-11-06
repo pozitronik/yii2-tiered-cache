@@ -1,0 +1,54 @@
+{
+	"name" : "beeline/yii2-tiered-cache",
+	"description" : "Multi-tiered caching component for Yii2 with circuit breaker protection and automatic failover",
+	"type" : "library",
+	"keywords" : [
+		"yii2",
+		"cache",
+		"tiered-cache",
+		"multi-tier",
+		"circuit-breaker",
+		"failover",
+		"resilience"
+	],
+	"license" : "GPL-3.0-or-later",
+	"minimum-stability" : "stable",
+	"prefer-stable" : true,
+	"authors" : [
+		{
+			"name" : "Beeline Development Team"
+		}
+	],
+	"require" : {
+		"php" : "^8.4",
+		"yiisoft/yii2" : "^2.0"
+	},
+	"require-dev" : {
+		"phpunit/phpunit" : "^10.0",
+		"codeception/codeception" : "^5.0"
+	},
+	"autoload" : {
+		"psr-4" : {
+			"Beeline\\TieredCache\\" : "src/"
+		}
+	},
+	"config" : {
+		"fxp-asset" : {
+			"enabled" : false
+		},
+		"allow-plugins" : {
+			"yiisoft/yii2-composer" : true
+		}
+	},
+	"autoload-dev" : {
+		"psr-4" : {
+			"Beeline\\TieredCache\\Tests\\" : "tests/"
+		}
+	},
+	"repositories" : [
+		{
+			"type" : "composer",
+			"url" : "https://asset-packagist.org"
+		}
+	]
+}
