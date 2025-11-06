@@ -16,7 +16,8 @@
 	"prefer-stable" : true,
 	"authors" : [
 		{
-			"name" : "Beeline Development Team"
+			"name" : "Pavel Dubrovsky",
+			"email": "antikillerxxl@gmail.com"
 		}
 	],
 	"require" : {
