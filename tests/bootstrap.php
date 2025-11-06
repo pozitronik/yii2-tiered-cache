@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 // Composer autoloader
+use yii\console\Application;
+
 require_once dirname(__DIR__) . '/vendor/autoload.php';
 
 // Define Yii2 aliases and constants
@@ -14,11 +16,10 @@ require_once dirname(__DIR__) . '/vendor/yiisoft/yii2/Yii.php';
 
 // Set up minimal Yii application for testing
 // This is needed because Yii2 components use Yii::createObject() and other Yii features
-new \yii\console\Application([
+$app = new Application([
     'id' => 'yii2-tiered-cache-tests',
     'basePath' => dirname(__DIR__),
     'vendorPath' => dirname(__DIR__) . '/vendor',
-    'components' => [
-        // Minimal components needed for cache testing
-    ],
+    'components' => [],
 ]);
+
