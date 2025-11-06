@@ -57,7 +57,7 @@ jobs:
 
       - name: Run tests (without coverage)
         if: matrix.dependencies == 'lowest'
-        run: XDEBUG_MODE=off vendor/bin/phpunit --colors=always
+        run: vendor/bin/phpunit --colors=always --no-coverage
 
       - name: Run tests with coverage
         if: matrix.dependencies != 'lowest'

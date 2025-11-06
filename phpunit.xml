@@ -1,20 +1,24 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/10.0/phpunit.xsd"
+         xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/12.0/phpunit.xsd"
          bootstrap="tests/bootstrap.php"
          colors="true"
          failOnRisky="true"
          failOnWarning="true"
-         cacheDirectory=".phpunit.cache">
+         cacheDirectory=".phpunit.cache"
+         executionOrder="depends,defects"
+         requireCoverageMetadata="false">
     <testsuites>
         <testsuite name="TieredCache Test Suite">
             <directory>tests/Unit</directory>
         </testsuite>
     </testsuites>
-    <coverage>
+    <source>
         <include>
             <directory suffix=".php">src</directory>
         </include>
+    </source>
+    <coverage>
         <report>
             <clover outputFile="coverage.xml"/>
         </report>
