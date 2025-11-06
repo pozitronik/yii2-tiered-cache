@@ -1,0 +1,54 @@
+image: harbor.vimpelcom.ru/cpu/cpu_base:8.4.12-fpm-alpine3.21
+
+stages:
+  - test
+
+variables:
+  COMPOSER_CACHE_DIR: "$CI_PROJECT_DIR/.composer-cache"
+
+cache:
+  key: ${CI_COMMIT_REF_SLUG}
+  paths:
+    - .composer-cache/
+    - vendor/
+
+before_script:
+  - composer install --prefer-dist --no-progress --no-interaction
+
+Run tests with coverage:
+  stage: test
+  allow_failure: false
+  tags:
+    - k8s
+  only:
+    - merge_requests
+    - master
+    - dev
+  script:
+    - vendor/bin/phpunit --coverage-clover coverage.xml --coverage-text --colors=never
+  coverage: '/^\s*Lines:\s*\d+.\d+\%/'
+  artifacts:
+    when: always
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage.xml
+    paths:
+      - coverage.xml
+    expire_in: 1 week
+
+Run tests with lowest dependencies:
+  stage: test
+  allow_failure: false
+  tags:
+    - k8s
+  only:
+    - merge_requests
+    - master
+    - dev
+  script:
+    - composer update --prefer-lowest --prefer-stable --prefer-dist --no-interaction --no-progress
+    - vendor/bin/phpunit --no-coverage --colors=never
+  artifacts:
+    when: always
+    expire_in: 1 day
