@@ -1,7 +1,7 @@
 # Yii2 Tiered Cache
 
 [![Tests](https://github.com/pozitronik/yii2-tiered-cache/actions/workflows/tests.yml/badge.svg)](https://github.com/pozitronik/yii2-tiered-cache/actions/workflows/tests.yml)
-[![Codecov](https://codecov.io/gh/pozitronik/yii2-tiered-cache/branch/main/graph/badge.svg)](https://codecov.io/gh/pozitronik/yii2-tiered-cache)
+[![Codecov](https://codecov.io/gh/pozitronik/yii2-tiered-cache/branch/master/graph/badge.svg)](https://codecov.io/gh/pozitronik/yii2-tiered-cache)
 [![Latest Stable Version](https://poser.pugx.org/beeline/yii2-tiered-cache/v)](https://packagist.org/packages/beeline/yii2-tiered-cache)
 [![License](https://poser.pugx.org/beeline/yii2-tiered-cache/license)](https://packagist.org/packages/beeline/yii2-tiered-cache)
 

@@ -8,19 +8,17 @@ on:
 
 jobs:
   test:
-    name: PHP ${{ matrix.php }} - Yii2 ${{ matrix.yii2 }}
+    name: PHP ${{ matrix.php }}${{ matrix.dependencies && ' (lowest dependencies)' || '' }}
     runs-on: ubuntu-latest
 
     strategy:
       fail-fast: false
       matrix:
         include:
-          # Default dependencies
+          # Default dependencies (latest stable)
           - php: '8.4'
-            yii2: '^2.0.45'
-          # Test with the lowest dependencies
+          # Lowest supported dependencies
           - php: '8.4'
-            yii2: '^2.0.45'
             dependencies: 'lowest'
 
     steps:
@@ -51,15 +49,11 @@ jobs:
 
       - name: Install dependencies (default)
         if: matrix.dependencies != 'lowest'
-        run: |
-          composer require "yiisoft/yii2:${{ matrix.yii2 }}" --no-interaction --no-update
-          composer update --prefer-dist --no-interaction --no-progress
+        run: composer update --prefer-dist --no-interaction --no-progress
 
       - name: Install dependencies (lowest)
         if: matrix.dependencies == 'lowest'
-        run: |
-          composer require "yiisoft/yii2:${{ matrix.yii2 }}" --no-interaction --no-update
-          composer update --prefer-lowest --prefer-stable --prefer-dist --no-interaction --no-progress
+        run: composer update --prefer-lowest --prefer-stable --prefer-dist --no-interaction --no-progress
 
       - name: Run tests
         run: vendor/bin/phpunit --colors=always
