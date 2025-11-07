@@ -5,8 +5,8 @@ namespace Beeline\TieredCache\Tests\Unit;
 
 use Beeline\TieredCache\Cache\TieredCache;
 use Beeline\TieredCache\Cache\WrappedCacheValue;
-use Beeline\TieredCache\Resilience\BreakerInterface;
-use Beeline\TieredCache\Resilience\CircuitBreaker;
+use Beeline\CircuitBreaker\BreakerInterface;
+use Beeline\CircuitBreaker\CircuitBreaker;
 use PHPUnit\Framework\TestCase;
 use Exception;
 use RuntimeException;

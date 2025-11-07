@@ -3,9 +3,9 @@ declare(strict_types=1);
 namespace Beeline\TieredCache\Tests\Unit;
 
 
+use Beeline\CircuitBreaker\BreakerInterface;
 use Beeline\TieredCache\Cache\TieredCache;
 use Beeline\TieredCache\Cache\WrappedCacheValue;
-use Beeline\TieredCache\Resilience\BreakerInterface;
 use PHPUnit\Framework\TestCase;
 use yii\base\InvalidConfigException;
 use yii\caching\ArrayCache;
@@ -77,7 +77,7 @@ class TieredCacheResilienceTest extends TestCase
      * При нахождении значения в нижнем слое оно должно быть заполнено в верхние слои.
      *
      * Шаги теста:
-     * 1. Создается TieredCache с тремя слоями: ArrayCache (L1)ArrayCache (L2)ArrayCache (L3)
+     * 1. Создается TieredCache с тремя слоями: ArrayCache
      * 2. Устанавливается стратегия восстановления RECOVERY_POPULATE
      * 3. Значение устанавливается только в L3 (третий слой)
      * 4. Выполняется чтение значения через TieredCache
@@ -93,14 +93,14 @@ class TieredCacheResilienceTest extends TestCase
      */
     public function testMultiTierReading(): void
     {
-        // Use ArrayCache instead of ArrayCache for unit testing
         $l1 = new ArrayCache();
-        $l2 = new ArrayCache(); // Second in-memory cache instead of DB
+        $l2 = new ArrayCache();
+        $l3 = new ArrayCache();
 
         $cache = new TieredCache([
             'layers' => [
                 ['cache' => $l1, 'ttl' => 60],
-                ['cache' => new ArrayCache(), 'ttl' => 60],
+                ['cache' => $l3, 'ttl' => 60],
                 ['cache' => $l2, 'ttl' => 60],
             ],
             'recoveryStrategy' => TieredCache::RECOVERY_POPULATE,
@@ -261,7 +261,6 @@ class TieredCacheResilienceTest extends TestCase
      */
     public function testAutoFailoverWhenArrayCacheUnavailable(): void
     {
-        // Use ArrayCache instead of ArrayCache for unit testing
         $l1 = new ArrayCache();
         $l2 = new ArrayCache();
 

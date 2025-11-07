@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Beeline\TieredCache\Cache;
 
-use Beeline\TieredCache\Resilience\BreakerInterface;
+use Beeline\CircuitBreaker\BreakerInterface;
 use Throwable;
 use yii\caching\CacheInterface;
 

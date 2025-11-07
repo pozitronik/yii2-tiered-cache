@@ -3,8 +3,8 @@ declare(strict_types=1);
 
 namespace Beeline\TieredCache\Cache;
 
-use Beeline\TieredCache\Resilience\BreakerInterface;
-use Beeline\TieredCache\Resilience\CircuitBreaker;
+use Beeline\CircuitBreaker\BreakerInterface;
+use Beeline\CircuitBreaker\CircuitBreaker;
 use InvalidArgumentException;
 use Throwable;
 use Yii;
