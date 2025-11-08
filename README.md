@@ -234,7 +234,7 @@ vendor/bin/phpunit
 
 ## Лицензия
 
-GNU General Public License v3.0 или более поздняя версия. Подробности в файле LICENSE.
+GNU Lesser General Public License 3.0
 
 ## Ссылки
 
